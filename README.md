@@ -1,5 +1,7 @@
 # Local Skill Router
 
+[![checks](https://github.com/cobanfurkanx/local-skill-router/actions/workflows/checks.yml/badge.svg)](https://github.com/cobanfurkanx/local-skill-router/actions/workflows/checks.yml)
+
 A proactive, local-first skill router for coding agents. Native adapters surface installed workflows; when something useful is missing, **your agent** can discover a candidate on skills.sh, review an immutable source, and install it globally under your chosen policy.
 
 **Your model makes the selection; the tool does not call another model.** Using no skill is a valid outcome. Popularity is not quality, and this project does not promise the optimal skill, better output, or fewer tokens on every task. Initial release: **0.1.0**.
@@ -32,7 +34,7 @@ No `pip install`, RTK, API key, additional model, telemetry service or resident 
 |---|---|---|
 | Codex | Global `AGENTS.md` + native skill | Instruction-driven; model must follow the rule |
 | Claude Code | Global rule + `UserPromptSubmit` exec-form hook | Current Claude versions supporting hook `args`; injected local candidates |
-| OpenCode | Global rule + local `chat.message` plugin | Injected local candidates; tested plugin contract |
+| OpenCode | Global rule + local `chat.message` plugin | Local injection verified in OpenCode 1.19.3; see release verification limits |
 | Antigravity App / CLI | Global `GEMINI.md` + skills in both native locations | Instruction-driven; native skill refresh may require restart |
 | Hermes / Copilot CLI | Global instruction + native skill | Instruction-driven compatibility profiles |
 | Cursor | Always-apply project rule + user skill | Supply `--project PATH` before `install`; global GUI rules are not edited |
@@ -122,7 +124,7 @@ python -m compileall -q scripts tests
 git diff --check
 ```
 
-Tests create synthetic libraries and isolated state; they never call another model or install this skill globally. GitHub Actions is configured for Python 3.11/3.14 on Windows/Linux. Local success does not mean remote CI has run.
+Tests create synthetic libraries and isolated state; they never call another model or install this skill globally. GitHub Actions tests Python 3.11/3.14 on Windows/Linux. See the [workflow](https://github.com/cobanfurkanx/local-skill-router/actions/workflows/checks.yml) and [release verification](CHANGELOG.md) for actual results and native-client limits.
 
 Contributions: keep runtime dependencies at zero unless a demonstrated need justifies one; add a regression test for behavior changes; do not include generated state or claim quality improvements without an appropriate comparison. See [AGENTS.md](AGENTS.md) and [SECURITY.md](SECURITY.md).
 

@@ -158,7 +158,10 @@ if (!added || !added.id.startsWith('prt_') || added.sessionID!=='fixture' || add
         self.assertIsNone(result['profiles'][0]['instructions'])
 
     def test_remote_policy_opt_in_and_revoke(self):
-        self.install(['codex'],remote_policy='reviewed')
+        installed = self.install(['codex'],remote_policy='reviewed')
+        skill = (Path(installed['app']) / 'SKILL.md').read_text(encoding='utf-8')
+        for helper in ('router','remote'):
+            self.assertIn(f'/scripts/{helper}.py" --state-dir "{self.state.as_posix()}"',skill)
         self.assertEqual(json.loads((self.state/'remote-policy.json').read_text())['global_install'],'reviewed')
         self.install(['codex'])
         self.assertEqual(json.loads((self.state/'remote-policy.json').read_text())['global_install'],'reviewed')
