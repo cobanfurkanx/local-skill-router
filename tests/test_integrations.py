@@ -121,6 +121,22 @@ class IntegrationTests(unittest.TestCase):
         journal = next((self.state/'operations').glob('*.json'))
         changes.undo(self.state,journal.stem,[self.home])
 
+    def test_undo_preserves_file_changed_during_restore(self):
+        a,b = self.home/'a.txt',self.home/'b.txt'
+        a.write_bytes(b'old a')
+        b.write_bytes(b'old b')
+        installed = changes.apply(self.state,[(a,b'old a',b'new a'),(b,b'old b',b'new b')],[self.home],'fixture')
+        original = changes.write
+        def edit_during_restore(path, payload):
+            original(path,payload)
+            if path == b:
+                a.write_bytes(b'concurrent user edit')
+        with patch.object(changes,'write',side_effect=edit_during_restore):
+            with self.assertRaisesRegex(ValueError,'changed during undo'):
+                changes.undo(self.state,installed['operation'],[self.home])
+        self.assertEqual(a.read_bytes(),b'concurrent user edit')
+        self.assertEqual(b.read_bytes(),b'old b')
+
     def test_native_claude_exec_form_produces_context_without_shell(self):
         self.install(['claude'])
         settings = json.loads((self.home/'.claude/settings.json').read_text())

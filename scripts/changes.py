@@ -98,8 +98,10 @@ def undo(state, operation, roots):
         if not within(path, roots) or digest(actual) not in {digest(before), entry['after_sha256']}:
             raise ValueError('Undo refused; preserve changed file: ' + str(path))
         if actual != before:
-            restore.append((path, before))
-    for path, before in reversed(restore):
+            restore.append((path, before, actual))
+    for path, before, expected in reversed(restore):
+        if current(path) != expected:
+            raise ValueError('File changed during undo; preserve newer edits: ' + str(path))
         write(path, before)
     for directory in record.get('created_dirs', []):
         path = Path(directory)
