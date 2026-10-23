@@ -59,7 +59,13 @@ def plan(home, state, selected, project=None, env=None, remote_policy=None):
         planned[path] = (path, before, after)
 
     for name, payload in payloads.items():
-        put(app / name, payload.replace(b'<skill-dir>', app.as_posix().encode()) if name == 'SKILL.md' else payload)
+        if name == 'SKILL.md':
+            payload = payload.replace(b'<skill-dir>', app.as_posix().encode())
+            for helper in ('router', 'remote'):
+                command = f'{app.as_posix()}/scripts/{helper}.py"'
+                payload = payload.replace(command.encode(), (command + f' --state-dir "{state.as_posix()}"').encode())
+            payload += f'\nConfigured private state: `{state.as_posix()}`. Keep this `--state-dir` in every helper command, including commands from reference examples.\n'.encode()
+        put(app / name, payload)
     policy_path = state / 'remote-policy.json'
     if remote_policy is not None or not policy_path.exists():
         put(policy_path, (json.dumps({'global_install':remote_policy or 'ask'}) + '\n').encode())
