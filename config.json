@@ -1,0 +1,382 @@
+{
+  "max_age_seconds": 3600,
+  "min_score": 4.2,
+  "relative_threshold": 0.4,
+  "skip_patterns": [
+    "(?:bugun(?:un)?|su anki) tarih(?:i)?(?: nedir)?",
+    "(?:what is )?(?:the )?(?:current|today'?s) date",
+    "saat kac",
+    "what time is it",
+    "merhaba",
+    "selam",
+    "tesekkur(?:ler)?",
+    "thanks",
+    "hello",
+    "hi"
+  ],
+  "roots": [
+    {
+      "path": "~/.agents/skills",
+      "source": "shared",
+      "agents": [
+        "any"
+      ]
+    },
+    {
+      "path": "~/.codex/skills",
+      "source": "codex",
+      "agents": [
+        "codex"
+      ]
+    },
+    {
+      "path": "~/.claude/skills",
+      "source": "claude",
+      "agents": [
+        "any"
+      ]
+    },
+    {
+      "path": "~/.hermes/skills",
+      "source": "hermes",
+      "agents": [
+        "any"
+      ]
+    },
+    {
+      "path": "~/.gemini/config/skills",
+      "source": "antigravity",
+      "agents": [
+        "any"
+      ]
+    },
+    {
+      "path": "~/.gemini/antigravity/skills",
+      "source": "antigravity",
+      "agents": [
+        "any"
+      ]
+    },
+    {
+      "path": "~/.gemini/antigravity-cli/skills",
+      "source": "antigravity",
+      "agents": [
+        "any"
+      ]
+    },
+    {
+      "path": "~/.config/opencode/skills",
+      "source": "opencode",
+      "agents": [
+        "any"
+      ]
+    },
+    {
+      "path": "~/.opencode/skills",
+      "source": "opencode",
+      "agents": [
+        "any"
+      ]
+    },
+    {
+      "path": "~/.cursor/skills",
+      "source": "cursor",
+      "agents": [
+        "any"
+      ]
+    },
+    {
+      "path": "~/.copilot/skills",
+      "source": "copilot",
+      "agents": [
+        "any"
+      ]
+    },
+    {
+      "path": "~/.trae/skills",
+      "source": "trae",
+      "agents": [
+        "any"
+      ]
+    }
+  ],
+  "aliases": [
+    {
+      "match": [
+        "arayuz*",
+        "tasarim*",
+        "sayfa*",
+        "responsive",
+        "frontend",
+        "bilesen*"
+      ],
+      "exclude": [
+        "pdf",
+        "pptx",
+        "powerpoint",
+        "sunum*",
+        "slayt*",
+        "word",
+        "docx",
+        "api",
+        "endpoint",
+        "schema",
+        "veritabani*"
+      ],
+      "expand": "frontend ui interface layout accessibility components",
+      "prefer": [
+        "frontend-ui-engineering"
+      ]
+    },
+    {
+      "match": [
+        "hata*",
+        "bozul*",
+        "calismiyor",
+        "debug",
+        "bug",
+        "bugs",
+        "crash",
+        "exception"
+      ],
+      "expand": "debugging diagnosing bugs errors recovery"
+    },
+    {
+      "match": [
+        "review",
+        "pull request",
+        "kod denet*",
+        "kodu incele*",
+        "pr incele*"
+      ],
+      "expand": "code review quality diff",
+      "prefer": [
+        "code-review-and-quality"
+      ]
+    },
+    {
+      "match": [
+        "tarayici*",
+        "browser",
+        "devtools",
+        "tikla*",
+        "tiklay*",
+        "ekran gorunt*"
+      ],
+      "expand": "browser testing devtools interaction runtime",
+      "prefer": [
+        "browser-testing-with-devtools"
+      ]
+    },
+    {
+      "match": [
+        "pdf"
+      ],
+      "expand": "pdf document",
+      "prefer": [
+        "pdf"
+      ]
+    },
+    {
+      "match": [
+        "excel",
+        "xlsx",
+        "spreadsheet",
+        "hesap tablosu",
+        "elektronik tablo"
+      ],
+      "expand": "spreadsheet xlsx excel formulas",
+      "prefer": [
+        "spreadsheets",
+        "xlsx"
+      ]
+    },
+    {
+      "match": [
+        "sunum*",
+        "slayt*",
+        "pptx",
+        "powerpoint"
+      ],
+      "expand": "slides presentation powerpoint pptx",
+      "prefer": [
+        "presentations",
+        "powerpoint"
+      ]
+    },
+    {
+      "match": [
+        "word",
+        "docx",
+        "belge*",
+        "rapor*"
+      ],
+      "exclude": [
+        "excel",
+        "xlsx",
+        "spreadsheet",
+        "sunum*",
+        "slayt*",
+        "pptx",
+        "powerpoint"
+      ],
+      "expand": "documents docx word document",
+      "prefer": [
+        "documents",
+        "docx"
+      ]
+    },
+    {
+      "match": [
+        "gorsel*",
+        "resim*",
+        "imagegen",
+        "illustration",
+        "logo"
+      ],
+      "expand": "image generation imagegen",
+      "prefer": [
+        "imagegen"
+      ]
+    },
+    {
+      "match": [
+        "test",
+        "dogrula*",
+        "pytest"
+      ],
+      "expand": "testing verification"
+    },
+    {
+      "match": [
+        "regresyon*",
+        "regression test*",
+        "unit test*",
+        "birim test*",
+        "pytest"
+      ],
+      "expand": "test driven development regression verification",
+      "prefer": [
+        "test-driven-development"
+      ]
+    },
+    {
+      "match": [
+        "deploy",
+        "dagit*",
+        "ci pipeline",
+        "deployment pipeline",
+        "build pipeline",
+        "ci cd",
+        "github actions"
+      ],
+      "expand": "ci cd automation deployment"
+    },
+    {
+      "match": [
+        "veritabani*",
+        "sql",
+        "postgres",
+        "supabase"
+      ],
+      "expand": "database supabase sql schema"
+    },
+    {
+      "match": [
+        "performans*",
+        "hizlandir*",
+        "optimize"
+      ],
+      "expand": "performance optimization profiling"
+    },
+    {
+      "match": [
+        "mimari*",
+        "architecture",
+        "yapiyi"
+      ],
+      "expand": "codebase design architecture"
+    },
+    {
+      "match": [
+        "api",
+        "endpoint",
+        "rest"
+      ],
+      "expand": "api interface design endpoint"
+    },
+    {
+      "match": [
+        "skill",
+        "skills",
+        "beceri*",
+        "yetenek*"
+      ],
+      "expand": "skills discovery skill creator"
+    },
+    {
+      "match": [
+        "skill olustur*",
+        "create skill",
+        "create agent skill",
+        "create new skill"
+      ],
+      "expand": "skill creator",
+      "prefer": [
+        "skill-creator"
+      ]
+    },
+    {
+      "match": [
+        "guvenlik",
+        "security",
+        "vulnerability"
+      ],
+      "expand": "security review vulnerability"
+    },
+    {
+      "match": [
+        "linkedin",
+        "is ilani",
+        "staj",
+        "kariyer"
+      ],
+      "expand": "linkedin jobs career"
+    },
+    {
+      "match": [
+        "git",
+        "commit",
+        "branch",
+        "merge",
+        "surum"
+      ],
+      "expand": "git workflow versioning"
+    },
+    {
+      "match": [
+        "refactor",
+        "sadelestir",
+        "temizle"
+      ],
+      "expand": "code simplification refactor"
+    },
+    {
+      "match": [
+        "openai",
+        "chatgpt",
+        "codex",
+        "gpt"
+      ],
+      "expand": "openai documentation"
+    },
+    {
+      "match": [
+        "context",
+        "baglam",
+        "token"
+      ],
+      "expand": "context engineering efficiency"
+    }
+  ]
+}
