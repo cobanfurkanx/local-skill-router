@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Undo rechecks file contents immediately before restoration and stops on a detected concurrent edit instead of overwriting it. Earlier restored files remain restored; the private journal is retained for recovery.
+
 ## 0.1.0 — 2026-10-23
 
 First public release: local skill ranking, proactive native adapters, and agent-operated skills.sh discovery with reviewed, commit-pinned global installation.

@@ -37,6 +37,8 @@ Pass the same `--state-dir` and, for Cursor, `--project` used at install. Doctor
 
 Every write is journaled before application with prior bytes and expected resulting hashes. Partial file-write failure rolls back unchanged files. Undo validates all recorded file hashes/allowed paths before restoration, refuses changed files, and can recover a prepared partial operation. Only recorded newly created empty directories are removed; there is no recursive deletion. Existing user edits are preserved even when that means a manual recovery is required. Derived indexes and private operation journals remain after undo.
 
+Undo also rechecks each file immediately before restoring it. A detected concurrent edit stops recovery; earlier files may already have been restored. Keep the journal for review. This is not an operating-system lock against concurrent writers.
+
 ## Current primary sources
 
 - [Claude hooks, exec form](https://code.claude.com/docs/en/hooks)
