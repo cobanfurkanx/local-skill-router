@@ -125,8 +125,11 @@ class PortableTests(unittest.TestCase):
         policy.write_text('policy:\n  allow_implicit_invocation: false\n', encoding='utf-8')
         proc = self.cli('hook','--agent','claude',input='{"prompt":"Python debugging"}')
         self.assertEqual(proc.returncode, 0, proc.stderr)
-        self.assertEqual(proc.stdout, '')
         explicit = self.cli('query','Python debugging','--explicit','python-debug')
+        context = json.loads(proc.stdout)['hookSpecificOutput']['additionalContext']
+        self.assertNotIn('python-debug', context)
+        self.assertNotIn(str(self.skill), context)
+        self.assertIn('No match', context)
         self.assertEqual(len(json.loads(explicit.stdout)['candidates']), 1)
 
     def test_feedback_on_fresh_state_and_learning(self):

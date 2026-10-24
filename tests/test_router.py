@@ -41,6 +41,23 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual({s['name'] for s in result['suggested_reads']}, {'frontend', 'browser'})
         self.assertEqual(len(result['steps']), 2)
 
+    def test_hook_cache_rechecks_changed_task_with_same_candidates(self):
+        config = dict(self.config,hook_cache_dir=str(self.root/'hooks'))
+        record = self.skill('frontend','React interface accessibility')
+        result = {'candidates':[record]}
+        event = {'session_id':'one','prompt':'React interface','cwd':str(self.root)}
+        self.assertTrue(router.hook_changed(event,result,'codex',config))
+        self.assertFalse(router.hook_changed(event,result,'codex',config))
+        self.assertTrue(router.hook_changed(dict(event,prompt='React accessibility'),result,'codex',config))
+        Path(record['path']).write_text('changed skill',encoding='utf-8')
+        self.assertTrue(router.hook_changed(dict(event,prompt='React accessibility'),result,'codex',config))
+
+    def test_guidance_covers_json_text_and_empty_library(self):
+        result = router.search('interface design',self.config,{'records':[]})
+        self.assertIn('acceptance criteria',result['instruction'])
+        for verbose in (False,True):
+            self.assertIn('concrete gaps',router.render(result,verbose))
+
     def test_plan_deduplicates_reads_and_tasks(self):
         record = self.skill('frontend', 'React interface accessibility')
         result = router.plan(['React interface', 'React interface', 'React accessibility'], self.config, {'records': [record]})

@@ -29,14 +29,14 @@ def section(before, body):
 
 def rule(app, state, agent):
     command = f'python "{app.as_posix()}/scripts/router.py" --state-dir "{state.as_posix()}"'
-    return (f'For substantial work without a suitable skill already loaded, run `{command} query "task + domain" --agent {agent} --text`. '
-            f'Use only useful candidates; choosing no skill is valid. For uncovered specialist work, read `{app.as_posix()}/SKILL.md` '
-            'and let the calling agent search skills.sh, review a pinned source, and install globally only with user authorization. '
+    return (f'For substantial work, follow `{app.as_posix()}/SKILL.md`: define acceptance criteria, assess local capability gaps, apply skills, verify output and repair at most twice. '
+            f'Reuse suitable loaded skills; otherwise run `{command} query "task + domain" --agent {agent} --text` or plan separate deliverables. '
+            'A match is not sufficient capability. For a concrete gap, the calling agent compares up to three skills.sh candidates, reviews a pinned source, and installs globally only under owner policy. '
             'Never send raw conversations/secrets in remote queries. Session/project instructions and host permissions prevail.')
 
 
 def adapter(app, state, agent):
-    return ('---\nname: local-skill-router\ndescription: Discover installed skills for substantial specialist tasks; search skills.sh only when local workflows are insufficient.\n---\n\n'
+    return ('---\nname: local-skill-router\ndescription: Assess capability gaps, select local or reviewed remote skills, apply them and verify task output with bounded repairs.\n---\n\n'
             + rule(app, state, agent) + '\n').encode('utf-8')
 
 

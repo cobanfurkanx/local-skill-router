@@ -45,14 +45,22 @@ No independent process can force every model/client to follow instructions. This
 
 ## Remote discovery workflow
 
+For substantial work, the agent now defines acceptance criteria, assesses local capability coverage, fills concrete gaps, applies the chosen guidance, and verifies the output with at most two repair passes. A matching skill is not automatically sufficient. UI work includes visual design decisions, desktop/mobile inspection and interaction/accessibility checks using available browser tools.
+
+Discovery is bounded: at most two searches, three candidates compared and one new skill installed per task. Existing installed skills and validated learned routes are reused first. Discovery runs through the calling agent, not a hidden model or networked prompt hook. See the complete [execution loop](SKILL.md). These are agent instructions, not an enforced execution engine or a guarantee of better output. Missing browser tools and failed checks must be disclosed.
+
+Existing installations receive the new workflow by rerunning `setup.py install` for the same profiles/state directory and restarting their sessions. Installation policy is preserved unless explicitly changed. This repository update alone does not change existing agent settings.
+
 ```text
-task → useful local skill? → use it
-              ↓ no
+task → acceptance criteria → assess local capabilities
+              ↓ concrete gap
       agent searches skills.sh
               ↓
       inspect pinned source → agent reviews content/tools/license
               ↓
-      owner policy allows install? → install globally → refresh → validate task output
+      owner policy allows install? → install globally → refresh
+              ↓
+      apply selected guidance → verify artifact → repair (maximum two passes)
 ```
 
 ```sh

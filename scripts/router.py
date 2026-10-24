@@ -19,6 +19,9 @@ BASE = Path(os.environ.get('SKILL_ROUTER_STATE_DIR') or
             str(Path(os.environ.get('XDG_STATE_HOME') or Path.home() / '.local/state') / 'local-skill-router')).expanduser()
 VERSION = 2
 RELEASE = '0.1.0'
+WORKFLOW = ('Assess each deliverable against acceptance criteria; a match is not proof of sufficient capability. '
+            'For concrete gaps, follow ' + (PACKAGE / 'SKILL.md').as_posix() +
+            ': compare bounded remote candidates under owner policy, apply selected workflows, verify output and repair at most twice.')
 STOP = set('a an the and or to of for with in on from use when using is are this that your you it as be by at into can should user task work needs need yapmak yap bir bu su ve ile icin olan olarak bana benim sen sana nasil lutfen simdi istiyorum olsun et yapar misin mi dosya'.split())
 
 
@@ -381,7 +384,7 @@ def prepare_search(index, agent, cwd, explicit):
 def search(query, config, index, agent='any', cwd=None, limit=3, explicit=(), feedback=(), prepared=None):
     normalized_query = normalize(query).strip(' ?.!')
     if any(re.fullmatch(pattern, normalized_query) for pattern in config.get('skip_patterns', [])):
-        return {'agent': agent, 'candidates': [], 'instruction': 'Trivial task: answer directly.'}
+        return {'agent': agent, 'candidates': [], 'trivial': True, 'instruction': 'Trivial task: answer directly.'}
     all_records, records, weighted, df, avg = prepared or prepare_search(index, agent, cwd, explicit)
     query_weights = expanded_query(query, config)
     learned = learned_matches(query_weights, records, agent, cwd)
@@ -395,7 +398,7 @@ def search(query, config, index, agent='any', cwd=None, limit=3, explicit=(), fe
                      'reused_successful_route':True,'estimated_tokens':math.ceil(record['bytes']/4)}
                     for record in exact_saved[:max(1,min(limit,5))]],
                 'learned_matches':len(exact_saved),'fast_path':True,
-                'instruction':'Reused verified task-type route. Check applicability and available tools before use.',
+                'instruction':WORKFLOW + ' Reused task-type route; validate this output separately.',
                 'indexed_names':len({normalize(r['name']) for r in all_records})}
     preferred = {normalize(name) for rule in matching_rules(query, config) for name in rule.get('prefer', [])}
     ranked = []
@@ -444,7 +447,7 @@ def search(query, config, index, agent='any', cwd=None, limit=3, explicit=(), fe
         if len(candidates) >= max(1, min(limit, 5)):
             break
     return {'agent': agent, 'candidates': candidates, 'learned_matches':len(learned),
-            'instruction': 'Candidates only. Read applicable SKILL.md; verify tools and permissions. Use none when irrelevant. Expand English task terms if retrieval misses.',
+            'instruction': WORKFLOW + ' Candidates only; verify tools and invocation policies.',
             'indexed_names': len({normalize(r['name']) for r in all_records})}
 
 
@@ -469,9 +472,9 @@ def hook_changed(event, result, agent, config):
     key = hashlib.sha256(json.dumps([agent, session, event.get('cwd')]).encode()).hexdigest()
     path = Path(cache) / (key + '.json')
     try:
-        signature = hashlib.sha256(json.dumps([
+        signature = hashlib.sha256(json.dumps([normalize(event.get('prompt', '')), [
             [c['path'], hashlib.sha256(Path(c['path']).read_bytes()).hexdigest()]
-            for c in result['candidates']]).encode()).hexdigest()
+            for c in result['candidates']]]).encode()).hexdigest()
         previous = load_json(path, {})
         now = time.time()
         if previous.get('signature') == signature and 0 <= now - previous.get('time', 0) < 900:
@@ -499,12 +502,14 @@ def plan(tasks, config, index, agent='any', cwd=None, explicit=(), feedback=()):
             entry['tasks'].append(task)
     return {'agent': agent, 'steps': steps, 'suggested_reads': list(reads.values()),
             'estimated_tokens': sum(c['estimated_tokens'] for c in reads.values()),
-            'instruction': 'Provisional first choices, not automatic invocation. Read relevant skills; check tools, conflicts and uncovered deliverables. Reject unsuitable candidates; learn only after output validation.'}
+            'instruction': WORKFLOW + ' Provisional first choices, not automatic invocation; learn only after output validation.'}
 
 
 def render(result, verbose=False):
+    if result.get('trivial'):
+        return result['instruction']
     if not verbose:
-        lines = ['Candidates, not automatic invocation. Read relevant files; verify tools.']
+        lines = [WORKFLOW, 'Candidates, not automatic invocation. Read relevant files; verify tools.']
         steps = result.get('steps', [result])
         unique = {}
         for step in steps:
@@ -532,7 +537,7 @@ def render(result, verbose=False):
         lines.append('\nSuggested unique reads: ' + str(len(result['suggested_reads'])) +
                      '; approximate tokens: ' + str(result['estimated_tokens']))
         return '\n'.join(lines)
-    lines = ['Skill candidates (verify relevance and tool availability):']
+    lines = [WORKFLOW, 'Skill candidates (verify relevance and tool availability):']
     for candidate in result['candidates']:
         lines.append(f"- {candidate['name']} | {candidate['path']} | {candidate['description']}")
         if candidate['requirements']:
@@ -695,7 +700,7 @@ def main():
         if len(tokens(task)) <= 1:
             return
         result = search(task, config, index, args.agent, cwd, feedback=read_feedback())
-        if result['candidates'] and hook_changed(event, result, args.agent, config):
+        if not result.get('trivial') and hook_changed(event, result, args.agent, config):
             print(json.dumps({'hookSpecificOutput': {'hookEventName': 'UserPromptSubmit',
                   'additionalContext': render(result)}}, ensure_ascii=False))
         return

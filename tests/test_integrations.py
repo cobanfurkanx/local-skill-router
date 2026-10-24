@@ -146,6 +146,39 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(result.returncode,0,result.stderr)
         self.assertIn('routing-probe',result.stdout)
 
+    def test_hook_miss_guides_discovery_but_trivial_prompt_stays_silent(self):
+        self.install(['claude'])
+        settings = json.loads((self.home/'.claude/settings.json').read_text())
+        hook = settings['hooks']['UserPromptSubmit'][0]['hooks'][0]
+        def invoke(prompt):
+            result = subprocess.run([hook['command'], *hook['args']],
+                input=json.dumps({'prompt':prompt,'cwd':str(self.project),'session_id':'miss'}),
+                capture_output=True,text=True,encoding='utf-8',timeout=20)
+            self.assertEqual(result.returncode,0,result.stderr)
+            return result.stdout
+        missed = invoke('orchestral violin composition')
+        self.assertIn('concrete gaps',missed)
+        self.assertIn('SKILL.md',missed)
+        self.assertEqual(invoke('orchestral violin composition'),'')
+        self.assertIn('concrete gaps',invoke('ceramic sculpture glazing'))
+        self.assertEqual(invoke('hello'),'')
+
+    def test_installed_workflow_is_resolved_for_every_profile(self):
+        result = self.install(list(agents.AGENTS))
+        app = Path(result['app'])
+        workflow = (app/'SKILL.md').read_text(encoding='utf-8')
+        self.assertIn('at most two repair passes',workflow)
+        self.assertIn('compare at most three candidates',workflow)
+        self.assertNotIn('<skill-dir>',workflow)
+        for agent in agents.AGENTS:
+            roots, instruction, _ = agents.locations(agent,self.home,self.project,{})
+            for root in roots:
+                adapter = (root/'local-skill-router/SKILL.md').read_text(encoding='utf-8')
+                self.assertIn(str(app.as_posix())+'/SKILL.md',adapter)
+                self.assertIn('acceptance criteria',adapter)
+            if instruction:
+                self.assertIn('acceptance criteria',instruction.read_text(encoding='utf-8'))
+
     @unittest.skipUnless(shutil.which('node'),'Node unavailable for the optional OpenCode plugin contract test')
     def test_opencode_plugin_injects_local_context_and_deduplicates(self):
         self.install(['opencode'])
