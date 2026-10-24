@@ -31,6 +31,8 @@ Project skill folders are searched from `--cwd` to the nearest Git root; without
 
 ## Query and plan
 
+For product builds/redesigns, first follow [brief inference](brief.md), then use `python scripts/router.py plan --brief-file brief.json --agent codex --text`. This input is mutually exclusive with `--task`/`--task-file`. It keeps product rationale, explicit assumptions and observable criteria beside candidates; neither validation nor a retrieval match proves coverage. The brief stays local and is not persisted in the router's index/learning cache or sent to remote search. Normal host tool logs may retain input/output.
+
 ```sh
 python scripts/router.py query "Python regression testing" --agent codex --text
 python scripts/router.py query --task-file task.txt --agent opencode --text --verbose

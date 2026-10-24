@@ -30,6 +30,7 @@ def section(before, body):
 def rule(app, state, agent):
     command = f'python "{app.as_posix()}/scripts/router.py" --state-dir "{state.as_posix()}"'
     return (f'For substantial work, follow `{app.as_posix()}/SKILL.md`: define acceptance criteria, assess local capability gaps, apply skills, verify output and repair at most twice. '
+            f'For product builds/redesigns, infer users, jobs, constraints and a justified design direction before selection, even without UI detail; read `{app.as_posix()}/references/brief.md` and run `{command} plan --brief-file BRIEF.json --agent {agent} --text`. '
             f'Reuse suitable loaded skills; otherwise run `{command} query "task + domain" --agent {agent} --text` or plan separate deliverables. '
             'A match is not sufficient capability. For a concrete gap, the calling agent compares up to three skills.sh candidates, reviews a pinned source, and installs globally only under owner policy. '
             'Never send raw conversations/secrets in remote queries. Session/project instructions and host permissions prevail.')

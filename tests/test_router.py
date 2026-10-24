@@ -76,6 +76,26 @@ class RoutingTests(unittest.TestCase):
             with self.subTest(tasks=tasks), self.assertRaises(ValueError):
                 router.plan(tasks, self.config, {'records': []})
 
+    def test_brief_validation_and_invocation_policy(self):
+        brief = {'product': 'Worker', 'users': 'Operators', 'jobs': ['Process jobs'],
+                 'constraints': [], 'assumptions': [], 'interface': False,
+                 'needs': [{'query': 'deploy application', 'reason': 'Release worker',
+                            'acceptance': ['Verify deployed health']} ]}
+        record = self.skill('deploy', 'deploy application', explicit=True)
+        result = router.plan_brief(brief, self.config, {'records': [record]})
+        self.assertEqual(result['steps'][0]['status'], 'no_match')
+        allowed = router.plan_brief(brief, self.config, {'records': [record]}, explicit=['deploy'])
+        self.assertEqual(len(allowed['suggested_reads']), 1)
+        for changes in ({'interface': True}, {'interface': 1}, {'jobs': []}, {'users': ' '},
+                        {'product': 'x' * 1001}, {'constraints': 'none'}, {'extra': True},
+                        {'needs': []}, {'needs': [{'query': 'deploy', 'reason': 'release', 'acceptance': []}]},
+                        {'design': {'direction': 'table', 'reason': 'scan'}}):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                router.plan_brief(dict(brief, **changes), self.config, {'records': []})
+        for invalid in (None, [], {}, {'product': 'Worker'}):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                router.plan_brief(invalid, self.config, {'records': []})
+
     def test_policy_change_blocks_cached_implicit_invocation(self):
         record = self.skill('deploy', 'deploy application')
         policy = Path(record['path']).parent / 'agents/openai.yaml'

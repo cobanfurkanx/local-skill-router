@@ -5,7 +5,7 @@ from pathlib import Path
 PACKAGE = Path(__file__).resolve().parents[1]
 FILES = ['SKILL.md', 'config.json', 'scripts/router.py', 'references/usage.md', 'LICENSE',
          'scripts/install_skill.py', 'scripts/agents.py', 'scripts/changes.py', 'scripts/setup.py',
-         'scripts/remote.py', 'references/remote.md', 'templates/opencode-plugin.js']
+         'scripts/remote.py', 'references/remote.md', 'references/brief.md', 'templates/opencode-plugin.js']
 
 
 def install(target, agent='any', dry_run=False):

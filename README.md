@@ -45,6 +45,8 @@ No independent process can force every model/client to follow instructions. This
 
 ## Remote discovery workflow
 
+Product builds/redesigns now start with an **agent-inferred brief**, even when the user gives no design details. The agent identifies users and primary jobs, labels assumptions, chooses a justified visual/interaction direction and derives skill needs before retrieval. `plan --brief-file brief.json` preserves each need's rationale and acceptance criteria in the result. It validates the brief's structure; semantic judgment still belongs to the agent. See [the brief workflow and example](references/brief.md). No universal dashboard template or extra model is built in.
+
 For substantial work, the agent now defines acceptance criteria, assesses local capability coverage, fills concrete gaps, applies the chosen guidance, and verifies the output with at most two repair passes. A matching skill is not automatically sufficient. UI work includes visual design decisions, desktop/mobile inspection and interaction/accessibility checks using available browser tools.
 
 Discovery is bounded: at most two searches, three candidates compared and one new skill installed per task. Existing installed skills and validated learned routes are reused first. Discovery runs through the calling agent, not a hidden model or networked prompt hook. See the complete [execution loop](SKILL.md). These are agent instructions, not an enforced execution engine or a guarantee of better output. Missing browser tools and failed checks must be disclosed.

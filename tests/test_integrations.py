@@ -170,12 +170,15 @@ class IntegrationTests(unittest.TestCase):
         self.assertIn('at most two repair passes',workflow)
         self.assertIn('compare at most three candidates',workflow)
         self.assertNotIn('<skill-dir>',workflow)
+        self.assertTrue((app/'references/brief.md').is_file())
         for agent in agents.AGENTS:
             roots, instruction, _ = agents.locations(agent,self.home,self.project,{})
             for root in roots:
                 adapter = (root/'local-skill-router/SKILL.md').read_text(encoding='utf-8')
                 self.assertIn(str(app.as_posix())+'/SKILL.md',adapter)
                 self.assertIn('acceptance criteria',adapter)
+                self.assertIn('plan --brief-file',adapter)
+                self.assertIn(str(app.as_posix())+'/references/brief.md',adapter)
             if instruction:
                 self.assertIn('acceptance criteria',instruction.read_text(encoding='utf-8'))
 

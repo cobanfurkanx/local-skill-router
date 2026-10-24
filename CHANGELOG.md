@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Product builds/redesigns infer a brief before skill selection, including unstated design needs, user jobs, explicit assumptions and product-specific design rationale. Added bounded `plan --brief-file` input with per-need acceptance criteria; existing query/plan callers remain supported.
+- Packaged brief guidance reaches all adapters; initialized empty libraries can emit gap guidance. No claim of measured design-quality improvement from this change yet.
+
 - Agent-owned capability/quality loop: acceptance criteria, local sufficiency assessment, bounded remote comparison and reviewed installation, concrete application, runtime verification and up to two repair passes. Existing index/validated learning reused; no extra model or dependency.
 - All generated adapter rules point to the execution loop. Claude/OpenCode hooks surface guidance even on local misses and re-evaluate changed prompts instead of suppressing different tasks with identical candidates. Trivial prompts remain silent.
 - Remote discovery and installation remain under owner policy; the loop is instruction-driven and has no measured quality advantage yet.
