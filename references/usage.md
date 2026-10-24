@@ -31,6 +31,8 @@ Project skill folders are searched from `--cwd` to the nearest Git root; without
 
 ## Query and plan
 
+For product builds/redesigns, first follow [brief inference](brief.md), then use `python scripts/router.py plan --brief-file brief.json --agent codex --text`. This input is mutually exclusive with `--task`/`--task-file`. It keeps product rationale, explicit assumptions and observable criteria beside candidates; neither validation nor a retrieval match proves coverage. The brief stays local and is not persisted in the router's index/learning cache or sent to remote search. Normal host tool logs may retain input/output.
+
 ```sh
 python scripts/router.py query "Python regression testing" --agent codex --text
 python scripts/router.py query --task-file task.txt --agent opencode --text --verbose
@@ -59,6 +61,6 @@ Learning stores tokenized task terms, selected names/paths/hashes and the eviden
 
 The `hook` command accepts a JSON object on stdin with `prompt`, optional `cwd`, and optional `session_id`. It emits Claude-style `hookSpecificOutput.additionalContext`. Other clients must use their own adapter/protocol; the agent name alone does not translate hook schemas.
 
-Run `refresh` first. Hooks intentionally skip rebuilding a missing or configuration-mismatched index. Their selected files and invocation policies are still checked at retrieval time; new files require a query or refresh. Without a session ID every relevant event can emit context. With an ID, unchanged suggestions are suppressed for 15 minutes using hashed session identity and content signatures. No raw prompt/session ID is written to this dedup cache. Hosts may retain their normal session logs independently.
+Run `refresh` first. Hooks intentionally skip rebuilding a missing or configuration-mismatched index. Their selected files and invocation policies are still checked at retrieval time; new files require a query or refresh. Nontrivial local misses emit capability-gap guidance, never a network request or installation. Without a session ID every relevant event can emit context. With an ID, the same normalized prompt and unchanged candidate content are suppressed for 15 minutes using hashed signatures; different tasks can receive the same candidates again. No raw prompt/session ID is written to this dedup cache. Hosts may retain their normal session logs independently.
 
 Proactive setup installs a current Claude exec-form hook and OpenCode adapter. To wire another hook manually, use an absolute Python/router path and `hook --agent claude`; review the host's current schema first. The output shape remains Claude-compatible; other clients need an adapter such as the supplied OpenCode plugin.

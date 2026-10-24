@@ -69,6 +69,43 @@ class PortableTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertEqual(json.loads(proc.stdout)['candidates'], [])
 
+    def test_documented_brief_cli_and_validation(self):
+        example = (ROOT / 'references/brief.md').read_text(encoding='utf-8').split('```json\n', 1)[1].split('```', 1)[0]
+        brief = json.loads(example)
+        brief['needs'][0]['query'] = 'Python debugging'
+        brief['needs'][1]['query'] = 'Python debugging'
+        path = self.root / 'brief.json'
+        path.write_text(json.dumps(brief), encoding='utf-8')
+        proc = self.cli('plan', '--brief-file', str(path))
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        result = json.loads(proc.stdout)
+        self.assertEqual(len(result['steps']), 2)
+        self.assertEqual(len(result['suggested_reads']), 1)
+        for step, need in zip(result['steps'], brief['needs']):
+            self.assertEqual(step['reason'], need['reason'])
+            self.assertEqual(step['acceptance'], need['acceptance'])
+        rendered = self.cli('plan', '--brief-file', str(path), '--text')
+        self.assertEqual(rendered.returncode, 0, rendered.stderr)
+        self.assertIn(brief['design']['direction'], rendered.stdout)
+        self.assertIn(brief['needs'][1]['reason'], rendered.stdout)
+        self.assertEqual(rendered.stdout.count(str(self.skill.resolve())), 1)
+        self.assertNotIn(brief['product'], ''.join(p.read_text(encoding='utf-8') for p in self.state.rglob('*.json')))
+        self.assertEqual(self.cli('plan', '--brief-file', str(path), '--task', 'Python').returncode, 2)
+        for raw in (b'{' , b'\xff', b' ' * 32769):
+            path.write_bytes(raw)
+            invalid = self.cli('plan', '--brief-file', str(path))
+            self.assertEqual(invalid.returncode, 2)
+            self.assertNotIn('Traceback', invalid.stderr)
+
+    def test_initialized_empty_library_hook_exposes_gap(self):
+        self.config.write_text('{"roots":[]}', encoding='utf-8')
+        event = '{"prompt":"build inventory application","session_id":"empty-fixture"}'
+        self.assertEqual(self.cli('hook', '--agent', 'claude', input=event).stdout, '')
+        self.assertEqual(self.cli('refresh').returncode, 0)
+        proc = self.cli('hook', '--agent', 'claude', input=event)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn('concrete gaps', proc.stdout)
+
     def test_malformed_configs_rejected_before_state_write(self):
         for config in [[], {'roots':None}, {'roots':['bad']}, {'roots':[{'path':'x'}]},
                        {'roots':[], 'min_score':-1}, {'roots':[], 'relative_threshold':True},
@@ -125,8 +162,11 @@ class PortableTests(unittest.TestCase):
         policy.write_text('policy:\n  allow_implicit_invocation: false\n', encoding='utf-8')
         proc = self.cli('hook','--agent','claude',input='{"prompt":"Python debugging"}')
         self.assertEqual(proc.returncode, 0, proc.stderr)
-        self.assertEqual(proc.stdout, '')
         explicit = self.cli('query','Python debugging','--explicit','python-debug')
+        context = json.loads(proc.stdout)['hookSpecificOutput']['additionalContext']
+        self.assertNotIn('python-debug', context)
+        self.assertNotIn(str(self.skill), context)
+        self.assertIn('No match', context)
         self.assertEqual(len(json.loads(explicit.stdout)['candidates']), 1)
 
     def test_feedback_on_fresh_state_and_learning(self):

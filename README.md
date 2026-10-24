@@ -45,14 +45,24 @@ No independent process can force every model/client to follow instructions. This
 
 ## Remote discovery workflow
 
+Product builds/redesigns now start with an **agent-inferred brief**, even when the user gives no design details. The agent identifies users and primary jobs, labels assumptions, chooses a justified visual/interaction direction and derives skill needs before retrieval. `plan --brief-file brief.json` preserves each need's rationale and acceptance criteria in the result. It validates the brief's structure; semantic judgment still belongs to the agent. See [the brief workflow and example](references/brief.md). No universal dashboard template or extra model is built in.
+
+For substantial work, the agent now defines acceptance criteria, assesses local capability coverage, fills concrete gaps, applies the chosen guidance, and verifies the output with at most two repair passes. A matching skill is not automatically sufficient. UI work includes visual design decisions, desktop/mobile inspection and interaction/accessibility checks using available browser tools.
+
+Discovery is bounded: at most two searches, three candidates compared and one new skill installed per task. Existing installed skills and validated learned routes are reused first. Discovery runs through the calling agent, not a hidden model or networked prompt hook. See the complete [execution loop](SKILL.md). These are agent instructions, not an enforced execution engine or a guarantee of better output. Missing browser tools and failed checks must be disclosed.
+
+Existing installations receive the new workflow by rerunning `setup.py install` for the same profiles/state directory and restarting their sessions. Installation policy is preserved unless explicitly changed. This repository update alone does not change existing agent settings.
+
 ```text
-task → useful local skill? → use it
-              ↓ no
+task → acceptance criteria → assess local capabilities
+              ↓ concrete gap
       agent searches skills.sh
               ↓
       inspect pinned source → agent reviews content/tools/license
               ↓
-      owner policy allows install? → install globally → refresh → validate task output
+      owner policy allows install? → install globally → refresh
+              ↓
+      apply selected guidance → verify artifact → repair (maximum two passes)
 ```
 
 ```sh
@@ -111,6 +121,8 @@ python scripts/router.py --config my-config.json --state-dir ./local-state query
 For sensitive or shell-heavy local task text, use `--task-file` instead of interpolating a raw prompt into a shell command. Do not send private text through remote search. No background monitoring or model experiments run automatically.
 
 ## What the pilot actually found
+
+A newer Codex pair tested the capability/quality loop on a multi-tenant webhook application: **26/26 independent checks without routing, 25/26 with routing**. The routed output had an early-retry bug. Neither arm exercised remote discovery; both native agents were blocked from browser verification. Accumulated tokens increased with routing, mostly in cached input. This pair does not demonstrate a quality advantage; the detailed fields and limitations are in [evaluation](docs/evaluation.md).
 
 One synthetic Python bug-fix task was run with routing on/off in two native clients. Both conditions passed the same 25 initial checks; every solution failed a supplemental large-number precision check. Reported token totals fell in one client and rose in the other. The sample cannot establish a general quality or cost benefit.
 

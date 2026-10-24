@@ -19,6 +19,10 @@ BASE = Path(os.environ.get('SKILL_ROUTER_STATE_DIR') or
             str(Path(os.environ.get('XDG_STATE_HOME') or Path.home() / '.local/state') / 'local-skill-router')).expanduser()
 VERSION = 2
 RELEASE = '0.1.0'
+WORKFLOW = ('For product builds/redesigns, infer a product brief before retrieval, even when design is unspecified; use plan --brief-file. '
+            'Assess each deliverable against acceptance criteria; a match is not proof of sufficient capability. '
+            'For concrete gaps, follow ' + (PACKAGE / 'SKILL.md').as_posix() +
+            ': compare bounded remote candidates under owner policy, apply selected workflows, verify output and repair at most twice.')
 STOP = set('a an the and or to of for with in on from use when using is are this that your you it as be by at into can should user task work needs need yapmak yap bir bu su ve ile icin olan olarak bana benim sen sana nasil lutfen simdi istiyorum olsun et yapar misin mi dosya'.split())
 
 
@@ -381,7 +385,7 @@ def prepare_search(index, agent, cwd, explicit):
 def search(query, config, index, agent='any', cwd=None, limit=3, explicit=(), feedback=(), prepared=None):
     normalized_query = normalize(query).strip(' ?.!')
     if any(re.fullmatch(pattern, normalized_query) for pattern in config.get('skip_patterns', [])):
-        return {'agent': agent, 'candidates': [], 'instruction': 'Trivial task: answer directly.'}
+        return {'agent': agent, 'candidates': [], 'trivial': True, 'instruction': 'Trivial task: answer directly.'}
     all_records, records, weighted, df, avg = prepared or prepare_search(index, agent, cwd, explicit)
     query_weights = expanded_query(query, config)
     learned = learned_matches(query_weights, records, agent, cwd)
@@ -395,7 +399,7 @@ def search(query, config, index, agent='any', cwd=None, limit=3, explicit=(), fe
                      'reused_successful_route':True,'estimated_tokens':math.ceil(record['bytes']/4)}
                     for record in exact_saved[:max(1,min(limit,5))]],
                 'learned_matches':len(exact_saved),'fast_path':True,
-                'instruction':'Reused verified task-type route. Check applicability and available tools before use.',
+                'instruction':WORKFLOW + ' Reused task-type route; validate this output separately.',
                 'indexed_names':len({normalize(r['name']) for r in all_records})}
     preferred = {normalize(name) for rule in matching_rules(query, config) for name in rule.get('prefer', [])}
     ranked = []
@@ -444,7 +448,7 @@ def search(query, config, index, agent='any', cwd=None, limit=3, explicit=(), fe
         if len(candidates) >= max(1, min(limit, 5)):
             break
     return {'agent': agent, 'candidates': candidates, 'learned_matches':len(learned),
-            'instruction': 'Candidates only. Read applicable SKILL.md; verify tools and permissions. Use none when irrelevant. Expand English task terms if retrieval misses.',
+            'instruction': WORKFLOW + ' Candidates only; verify tools and invocation policies.',
             'indexed_names': len({normalize(r['name']) for r in all_records})}
 
 
@@ -469,9 +473,9 @@ def hook_changed(event, result, agent, config):
     key = hashlib.sha256(json.dumps([agent, session, event.get('cwd')]).encode()).hexdigest()
     path = Path(cache) / (key + '.json')
     try:
-        signature = hashlib.sha256(json.dumps([
+        signature = hashlib.sha256(json.dumps([normalize(event.get('prompt', '')), [
             [c['path'], hashlib.sha256(Path(c['path']).read_bytes()).hexdigest()]
-            for c in result['candidates']]).encode()).hexdigest()
+            for c in result['candidates']]]).encode()).hexdigest()
         previous = load_json(path, {})
         now = time.time()
         if previous.get('signature') == signature and 0 <= now - previous.get('time', 0) < 900:
@@ -499,12 +503,62 @@ def plan(tasks, config, index, agent='any', cwd=None, explicit=(), feedback=()):
             entry['tasks'].append(task)
     return {'agent': agent, 'steps': steps, 'suggested_reads': list(reads.values()),
             'estimated_tokens': sum(c['estimated_tokens'] for c in reads.values()),
-            'instruction': 'Provisional first choices, not automatic invocation. Read relevant skills; check tools, conflicts and uncovered deliverables. Reject unsuitable candidates; learn only after output validation.'}
+            'instruction': WORKFLOW + ' Provisional first choices, not automatic invocation; learn only after output validation.'}
+
+
+def plan_brief(brief, config, index, agent='any', cwd=None, explicit=(), feedback=()):
+    """Route agent-inferred needs; validate structure, never claim semantic judgment."""
+    def text(value):
+        return isinstance(value, str) and 0 < len(value.strip()) <= 1000
+
+    def strings(value, minimum=0):
+        return isinstance(value, list) and minimum <= len(value) <= 8 and all(text(v) for v in value)
+
+    required = {'product', 'users', 'jobs', 'constraints', 'assumptions', 'interface', 'needs'}
+    if not isinstance(brief, dict) or not required <= brief.keys() or brief.keys() - required - {'design'}:
+        raise ValueError('Brief requires product, users, jobs, constraints, assumptions, interface and needs; optional design.')
+    if not all(text(brief[k]) for k in ('product', 'users')) or not strings(brief['jobs'], 1):
+        raise ValueError('Brief needs a product, users and 1-8 primary jobs.')
+    if not all(strings(brief[k]) for k in ('constraints', 'assumptions')) or type(brief['interface']) is not bool:
+        raise ValueError('constraints/assumptions must be string arrays; interface must be boolean.')
+    design = brief.get('design')
+    if brief['interface'] or design is not None:
+        if (not isinstance(design, dict) or set(design) != {'direction', 'reason', 'avoid'}
+                or not text(design['direction']) or not text(design['reason']) or not strings(design['avoid'], 1)):
+            raise ValueError('Interface briefs require design: direction, product-specific reason, and avoid (1-8 strings).')
+    needs = brief['needs']
+    if not isinstance(needs, list) or not 1 <= len(needs) <= 8:
+        raise ValueError('Provide 1-8 brief needs.')
+    for need in needs:
+        if (not isinstance(need, dict) or set(need) != {'query', 'reason', 'acceptance'}
+                or not text(need['query']) or not text(need['reason']) or not strings(need['acceptance'], 1)):
+            raise ValueError('Each need requires query, reason and 1-8 observable acceptance criteria.')
+    result = plan([n['query'] for n in needs], config, index, agent, cwd, explicit, feedback)
+    by_query = {step['task']: step for step in result['steps']}
+    result['steps'] = [dict(by_query[n['query'].strip()], reason=n['reason'], acceptance=n['acceptance']) for n in needs]
+    result['brief'] = {k: v for k, v in brief.items() if k != 'needs'}
+    result['instruction'] += ' Brief assumptions and design rationale are agent-authored, not independently verified. Coverage still requires content review.'
+    return result
 
 
 def render(result, verbose=False):
+    if 'brief' in result:
+        brief = result['brief']
+        lines = ['Product: ' + brief['product'], 'Users: ' + brief['users'],
+                 'Primary jobs: ' + '; '.join(brief['jobs']),
+                 'Constraints: ' + ('; '.join(brief['constraints']) or 'none stated'),
+                 'Assumptions (verify): ' + ('; '.join(brief['assumptions']) or 'none')]
+        if brief.get('design'):
+            design = brief['design']
+            lines += ['Design: ' + design['direction'], 'Why: ' + design['reason'], 'Avoid: ' + '; '.join(design['avoid'])]
+        for step in result['steps']:
+            lines += ['Need: ' + step['task'] + ' | Why: ' + step['reason'], 'Verify: ' + '; '.join(step['acceptance'])]
+        lines.append(render({k: v for k, v in result.items() if k != 'brief'}, verbose))
+        return '\n'.join(lines)
+    if result.get('trivial'):
+        return result['instruction']
     if not verbose:
-        lines = ['Candidates, not automatic invocation. Read relevant files; verify tools.']
+        lines = [WORKFLOW, 'Candidates, not automatic invocation. Read relevant files; verify tools.']
         steps = result.get('steps', [result])
         unique = {}
         for step in steps:
@@ -532,7 +586,7 @@ def render(result, verbose=False):
         lines.append('\nSuggested unique reads: ' + str(len(result['suggested_reads'])) +
                      '; approximate tokens: ' + str(result['estimated_tokens']))
         return '\n'.join(lines)
-    lines = ['Skill candidates (verify relevance and tool availability):']
+    lines = [WORKFLOW, 'Skill candidates (verify relevance and tool availability):']
     for candidate in result['candidates']:
         lines.append(f"- {candidate['name']} | {candidate['path']} | {candidate['description']}")
         if candidate['requirements']:
@@ -610,8 +664,10 @@ def main():
     query.add_argument('--text', action='store_true')
     query.add_argument('--verbose', action='store_true', help='Full candidate descriptions with --text')
     planning = commands.add_parser('plan', help='Route distinct deliverables separately')
-    planning.add_argument('--task', action='append', default=[])
-    planning.add_argument('--task-file', type=Path, help='UTF-8 JSON array of task strings')
+    inputs = planning.add_mutually_exclusive_group()
+    inputs.add_argument('--task', action='append', default=[])
+    inputs.add_argument('--task-file', type=Path, help='UTF-8 JSON array of task strings')
+    inputs.add_argument('--brief-file', type=Path, help='Agent-authored product brief JSON, at most 32 KiB; see references/brief.md')
     planning.add_argument('--agent', default='any')
     planning.add_argument('--cwd', default=os.getcwd())
     planning.add_argument('--explicit', action='append', default=[])
@@ -656,7 +712,7 @@ def main():
     # Normal query/refresh commands maintain the cache; installer builds it first.
     index = load_json(BASE / 'index.json', {}) if args.command == 'hook' else (
         build_index(config) if args.command == 'refresh' else get_index(config))
-    if args.command == 'hook' and not index.get('records'):
+    if args.command == 'hook' and not isinstance(index.get('records'), list):
         return
     if args.command == 'hook' and (index.get('version') != VERSION or index.get('config_digest') != hashlib.sha256(json.dumps(config, sort_keys=True).encode()).hexdigest()):
         return
@@ -675,10 +731,17 @@ def main():
         return
     if args.command == 'plan':
         try:
-            tasks = json.loads(args.task_file.read_text(encoding='utf-8-sig')) if args.task_file else args.task
-            if not isinstance(tasks, list):
-                raise ValueError('Task file must contain a JSON array.')
-            result = plan(tasks, config, index, args.agent, args.cwd, args.explicit, read_feedback())
+            if args.brief_file:
+                with args.brief_file.open('rb') as handle:
+                    raw = handle.read(32769)
+                if len(raw) > 32768:
+                    raise ValueError('Brief exceeds 32 KiB.')
+                result = plan_brief(json.loads(raw.decode('utf-8-sig')), config, index, args.agent, args.cwd, args.explicit, read_feedback())
+            else:
+                tasks = json.loads(args.task_file.read_text(encoding='utf-8-sig')) if args.task_file else args.task
+                if not isinstance(tasks, list):
+                    raise ValueError('Task file must contain a JSON array.')
+                result = plan(tasks, config, index, args.agent, args.cwd, args.explicit, read_feedback())
         except (OSError, UnicodeError, ValueError) as error:
             parser.error(str(error))
         print(render(result, verbose=args.verbose) if args.text else json.dumps(result, ensure_ascii=False))
@@ -695,7 +758,7 @@ def main():
         if len(tokens(task)) <= 1:
             return
         result = search(task, config, index, args.agent, cwd, feedback=read_feedback())
-        if result['candidates'] and hook_changed(event, result, args.agent, config):
+        if not result.get('trivial') and hook_changed(event, result, args.agent, config):
             print(json.dumps({'hookSpecificOutput': {'hookEventName': 'UserPromptSubmit',
                   'additionalContext': render(result)}}, ensure_ascii=False))
         return

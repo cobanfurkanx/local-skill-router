@@ -41,6 +41,23 @@ class RoutingTests(unittest.TestCase):
         self.assertEqual({s['name'] for s in result['suggested_reads']}, {'frontend', 'browser'})
         self.assertEqual(len(result['steps']), 2)
 
+    def test_hook_cache_rechecks_changed_task_with_same_candidates(self):
+        config = dict(self.config,hook_cache_dir=str(self.root/'hooks'))
+        record = self.skill('frontend','React interface accessibility')
+        result = {'candidates':[record]}
+        event = {'session_id':'one','prompt':'React interface','cwd':str(self.root)}
+        self.assertTrue(router.hook_changed(event,result,'codex',config))
+        self.assertFalse(router.hook_changed(event,result,'codex',config))
+        self.assertTrue(router.hook_changed(dict(event,prompt='React accessibility'),result,'codex',config))
+        Path(record['path']).write_text('changed skill',encoding='utf-8')
+        self.assertTrue(router.hook_changed(dict(event,prompt='React accessibility'),result,'codex',config))
+
+    def test_guidance_covers_json_text_and_empty_library(self):
+        result = router.search('interface design',self.config,{'records':[]})
+        self.assertIn('acceptance criteria',result['instruction'])
+        for verbose in (False,True):
+            self.assertIn('concrete gaps',router.render(result,verbose))
+
     def test_plan_deduplicates_reads_and_tasks(self):
         record = self.skill('frontend', 'React interface accessibility')
         result = router.plan(['React interface', 'React interface', 'React accessibility'], self.config, {'records': [record]})
@@ -58,6 +75,26 @@ class RoutingTests(unittest.TestCase):
         for tasks in ([], [''], ['   '], [3], ['task'] * 9):
             with self.subTest(tasks=tasks), self.assertRaises(ValueError):
                 router.plan(tasks, self.config, {'records': []})
+
+    def test_brief_validation_and_invocation_policy(self):
+        brief = {'product': 'Worker', 'users': 'Operators', 'jobs': ['Process jobs'],
+                 'constraints': [], 'assumptions': [], 'interface': False,
+                 'needs': [{'query': 'deploy application', 'reason': 'Release worker',
+                            'acceptance': ['Verify deployed health']} ]}
+        record = self.skill('deploy', 'deploy application', explicit=True)
+        result = router.plan_brief(brief, self.config, {'records': [record]})
+        self.assertEqual(result['steps'][0]['status'], 'no_match')
+        allowed = router.plan_brief(brief, self.config, {'records': [record]}, explicit=['deploy'])
+        self.assertEqual(len(allowed['suggested_reads']), 1)
+        for changes in ({'interface': True}, {'interface': 1}, {'jobs': []}, {'users': ' '},
+                        {'product': 'x' * 1001}, {'constraints': 'none'}, {'extra': True},
+                        {'needs': []}, {'needs': [{'query': 'deploy', 'reason': 'release', 'acceptance': []}]},
+                        {'design': {'direction': 'table', 'reason': 'scan'}}):
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                router.plan_brief(dict(brief, **changes), self.config, {'records': []})
+        for invalid in (None, [], {}, {'product': 'Worker'}):
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                router.plan_brief(invalid, self.config, {'records': []})
 
     def test_policy_change_blocks_cached_implicit_invocation(self):
         record = self.skill('deploy', 'deploy application')

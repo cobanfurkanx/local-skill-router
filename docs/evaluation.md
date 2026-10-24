@@ -1,5 +1,34 @@
 # Pilot evidence, not a performance guarantee
 
+## Codex capability-loop repeat — 2026-10-24
+
+One randomized pair tested runtime commit `e79428b033d632dbdf9e4eb06aff41a09e6105b4` with native Codex Desktop CLI `0.163.0-alpha.11.2`, model `gpt-6.1-sol`, medium reasoning. The task was RelayDesk: a Python standard-library/SQLite multi-tenant webhook laboratory with HMAC authentication, idempotency, cursor pagination, atomic claims across two processes, lease fencing, retry/dead-letter handling, a Turkish responsive UI, tests and documentation.
+
+Both arms had identical snapshots of ten native skills and independent homes/workspaces. Both were permitted bounded public skill discovery and one reviewed installation into their isolated test home. Only the treatment added the router adapter/workflow. Order was randomized before inference: router on, then off. Each run had a 20-minute limit; neither timed out. No output was regenerated or manually repaired to obtain a better comparison.
+
+| Observed field | Router off | Router on |
+|---|---:|---:|
+| Independent fixed HTTP checks | 26/26 | 25/26 |
+| Native input (includes cached input) | 1,103,289 | 1,371,664 |
+| Cached input | 1,059,584 | 1,327,872 |
+| Uncached input | 43,705 | 43,792 |
+| Output (includes reasoning) | 32,591 | 32,560 |
+| Reasoning subset | 6,059 | 3,726 |
+| Input + output | 1,135,880 | 1,404,224 |
+| Wall seconds | 735.235 | 719.703 |
+| Observed command/file-change operations | 21 | 36 |
+| Nonzero command exits, including RED tests/recovered failures | 5 | 7 |
+
+The router-on artifact rounded retry timing to integer seconds. A separate post-check probe observed a retry claim after **1.265 seconds**, below the required two seconds; the off artifact retried after **2.031 seconds**. The fixed test score was not changed by this probe. Later assertions in the failed retry/dead-letter test group did not execute for the on artifact. Other authentication, isolation, concurrency and persistence checks passed in both arms.
+
+The treatment read the router workflow and invoked local retrieval. Both arms read frontend and security skills. Neither used the remote helper or installed a new skill, and no skills.sh/GitHub discovery command was observed. Thus this run does not demonstrate the remote-discovery branch or its quality impact. Native agents attempted browser checks but reported Chrome profile access failures. After generation, the evaluator independently exercised tenant switching, signed event creation, claim and successful completion in both UIs; both worked. Both were also inspected at a verified 390px viewport without document-level horizontal overflow. These checks are not a full accessibility or visual-quality audit.
+
+**This pair did not demonstrate an output-quality advantage from routing.** The accumulated input+output count was about 23.6% higher with routing, but almost all of that difference was cached input; uncached input and output were nearly equal. Do not interpret accumulated tokens as unique context size, money or subscription quota. Cache/reasoning fields are subsets, not additions. The valid-pair subtotal is **2,540,104 tokens**; coordinating-chat usage is unknown and excluded. All failed commands remain in native usage/time.
+
+The task's functional contract and 26 checks were unchanged from the earlier local-only RelayDesk pair (25/26 in both arms). This repeat changed discovery permissions equally in both arms, so cross-run changes cannot be attributed solely to the new router workflow. One stochastic pair, sequential shared-prefix caching, private skill snapshots and incomplete browser verification during generation prevent general, causal or production-readiness claims. Raw sessions, credentials and private libraries are not published. This is an exploratory report, not a public reproducible benchmark suite.
+
+## Earlier ledger pilot
+
 An exploratory pilot ran on 2026-10-22, using the local predecessor of this portable package. It did **not** benchmark this packaged release or compare competing router repositories.
 
 Task: fix a synthetic Python ledger aggregator, including strict input validation, Decimal totals, normalized duplicate identities, conflict rejection, deterministic account ordering and unittest coverage. Each condition started in a separate workspace and session with the same task and initial code.
