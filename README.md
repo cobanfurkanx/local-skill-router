@@ -120,6 +120,8 @@ For sensitive or shell-heavy local task text, use `--task-file` instead of inter
 
 ## What the pilot actually found
 
+A newer Codex pair tested the capability/quality loop on a multi-tenant webhook application: **26/26 independent checks without routing, 25/26 with routing**. The routed output had an early-retry bug. Neither arm exercised remote discovery; both native agents were blocked from browser verification. Accumulated tokens increased with routing, mostly in cached input. This pair does not demonstrate a quality advantage; the detailed fields and limitations are in [evaluation](docs/evaluation.md).
+
 One synthetic Python bug-fix task was run with routing on/off in two native clients. Both conditions passed the same 25 initial checks; every solution failed a supplemental large-number precision check. Reported token totals fell in one client and rose in the other. The sample cannot establish a general quality or cost benefit.
 
 Read [the anonymized pilot and limitations](docs/evaluation.md). Raw conversations, private libraries, local paths, learned routes and experiment databases are intentionally excluded.
